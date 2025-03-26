@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 
 # دریافت توکن از متغیر محیطی
-TOKEN = os.getenv("7871082638:AAHRGRu1gC5ZwD6aBVEuTrMb5-MRtVomrH8")
+TOKEN = os.getenv("BOT_TOKEN")
 
 def download_music(update: Update, context: CallbackContext):
     query = " ".join(context.args)  # دریافت نام موزیک
