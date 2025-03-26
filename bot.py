@@ -1,18 +1,10 @@
 import os
 import yt_dlp
 from telegram import Update
-from telegram.ext import Application, CommandHandler, CallbackContext
-from flask import Flask
+from telegram.ext import Updater, CommandHandler, CallbackContext
 
 # دریافت توکن از متغیر محیطی
 TOKEN = os.getenv("BOT_TOKEN")
-
-# راه‌اندازی سرور فیک برای جلوگیری از توقف در Koyeb
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "Bot is running!"
 
 def download_music(update: Update, context: CallbackContext):
     query = " ".join(context.args)  # دریافت نام موزیک
@@ -44,16 +36,10 @@ def download_music(update: Update, context: CallbackContext):
     
     os.remove(filename)  # حذف فایل بعد از ارسال
 
-# راه‌اندازی ربات
-application = Application.builder().token(TOKEN).build()
-application.add_handler(CommandHandler("music", download_music))
+# راه‌اندازی ربات با Updater
+updater = Updater(TOKEN, use_context=True)
+dp = updater.dispatcher
+dp.add_handler(CommandHandler("music", download_music))
 
-# اجرای ربات
-if __name__ == '__main__':
-    import threading
-
-    # اجرای Flask در یک ترد جداگانه
-    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=8000)).start()
-
-    # شروع به کار ربات
-    application.run_polling()
+updater.start_polling()
+updater.idle()
