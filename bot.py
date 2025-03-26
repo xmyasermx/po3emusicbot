@@ -6,13 +6,18 @@ from flask import Flask
 
 # دریافت توکن از متغیر محیطی
 TOKEN = os.getenv("BOT_TOKEN")
-if not TOKEN:
-    raise ValueError("❌ خطا: متغیر محیطی BOT_TOKEN تنظیم نشده است!")
 
-async def download_music(update: Update, context: CallbackContext):
+# راه‌اندازی سرور فیک برای جلوگیری از توقف در Koyeb
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running!"
+
+def download_music(update: Update, context: CallbackContext):
     query = " ".join(context.args)  # دریافت نام موزیک
     if not query:
-        await update.message.reply_text("❌ لطفاً نام موزیک را وارد کنید.")
+        update.message.reply_text("❌ لطفاً نام موزیک را وارد کنید.")
         return
     
     search_query = f"ytsearch:{query}"  # جستجو در یوتیوب
@@ -24,37 +29,31 @@ async def download_music(update: Update, context: CallbackContext):
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(search_query, download=True)
+        info = ydl.extract_info(search_query, download=False)
         if 'entries' in info:
             info = info['entries'][0]  # اولین نتیجه
         else:
-            await update.message.reply_text("❌ موزیک موردنظر پیدا نشد!")
+            update.message.reply_text("❌ موزیک موردنظر پیدا نشد!")
             return
     
     filename = f"{info['title']}.mp3"
+    ydl.download([info['webpage_url']])  # دانلود از لینک ویدیو
 
     with open(filename, "rb") as audio:
-        await update.message.reply_audio(audio)
+        update.message.reply_audio(audio)
     
     os.remove(filename)  # حذف فایل بعد از ارسال
 
 # راه‌اندازی ربات
-app = Application.builder().token(TOKEN).build()
-app.add_handler(CommandHandler("music", download_music))
+application = Application.builder().token(TOKEN).build()
+application.add_handler(CommandHandler("music", download_music))
 
-# اجرای polling در یک Thread جداگانه
-import threading
-def run_bot():
-    app.run_polling()
+# اجرای ربات
+if __name__ == '__main__':
+    import threading
 
-threading.Thread(target=run_bot).start()
+    # اجرای Flask در یک ترد جداگانه
+    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=8000)).start()
 
-# ایجاد یک سرور Flask برای Koyeb
-server = Flask(__name__)
-
-@server.route("/")
-def home():
-    return "Bot is running!"
-
-if __name__ == "__main__":
-    server.run(host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
+    # شروع به کار ربات
+    application.run_polling()
