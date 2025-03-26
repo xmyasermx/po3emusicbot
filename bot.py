@@ -31,13 +31,4 @@ async def download_music(update: Update, context: CallbackContext):
     filename = f"{info['title']}.mp3"
     ydl.download([info['webpage_url']])
 
-    **with open(filename, "rb") as audio:**  # ✅ دو نقطه اضافه شد
-        await update.message.reply_audio(audio)
-    
-    os.remove(filename)
-
-# راه‌اندازی بات
-app = Application.builder().token(TOKEN).build()
-app.add_handler(CommandHandler("music", download_music))
-
-app.run_polling()
+    with open(filename, "rb") as audio:  # ✅ اینجا درست شده
