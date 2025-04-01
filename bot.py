@@ -1,41 +1,29 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackContext
-import yt_dlp
+from flask import Flask, request
+import telebot
 import os
 
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.getenv("BOT_TOKEN")  # Get token from environment variable
+bot = telebot.TeleBot(TOKEN)
 
-async def download_music(update: Update, context: CallbackContext):
-    query = " ".join(context.args)  # دریافت نام موزیک
-    if not query:
-        await update.message.reply_text("❌ لطفاً نام موزیک را وارد کنید.")
-        return
-    
-    search_query = f"ytsearch:{query}"
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'extractaudio': True,
-        'audioformat': 'mp3',
-        'outtmpl': '%(title)s.%(ext)s',
-    }
-    
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(search_query, download=False)
-        if 'entries' in info:
-            info = info['entries'][0]
-        else:
-            await update.message.reply_text("❌ موزیک موردنظر پیدا نشد!")
-            return
-    
-    filename = f"{info['title']}.mp3"
-    ydl.download([info['webpage_url']])
+app = Flask(__name__)
 
-    with open(filename, "rb") as audio:
-        await update.message.reply_audio(audio)
-    
-    os.remove(filename)
+@app.route("/", methods=["GET"])
+def index():
+    return "Telegram bot is running!"
 
-app = ApplicationBuilder().token(TOKEN).build()
-app.add_handler(CommandHandler("music", download_music))
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    update = request.get_json()
+    if update:
+        bot.process_new_updates([telebot.types.Update.de_json(update)])
+    return "OK", 200
 
-app.run_polling()
+@bot.message_handler(commands=['start', 'help'])
+def send_welcome(message):
+    bot.reply_to(message, "Hello! I am your bot. How can I assist you?")
+
+if __name__ == "__main__":
+    WEBHOOK_URL = "https://your-koyeb-app-url/webhook"  # Replace with your Koyeb app URL
+    bot.remove_webhook()
+    bot.set_webhook(url=WEBHOOK_URL)
+    app.run(host="0.0.0.0", port=8000)
